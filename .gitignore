@@ -1,2 +1,17 @@
 .~
 /env/
+/paper/fig/auto/
+*.aux
+*.log
+*.auxlock
+/paper/main.bbl
+/paper/main.blg
+/paper/main.pdf
+/paper/main.synctex.gz
+/paper/outline.org
+*.zip
+/paper/auto/
+/paper/_region_.tex
+/paper/IEEEtran_HOWTO.pdf
+/experiments/__pycache__/
+/package/quantum_energy/src/
