@@ -3,6 +3,7 @@
 % The preceding line is only needed to identify funding in the first footnote. If that is unneeded, please comment it out.
 %Template version as of 6/27/2024
 
+\usepackage{hyperref}
 \usepackage{cite}
 \usepackage{amsmath,amssymb,amsfonts,amsthm, mathtools,stmaryrd}
 \usepackage{graphicx}
@@ -1240,7 +1241,8 @@ solutions on the redispatch problem with $2$ timepoints with classical
 solvers. We then evaluate how applicable these weights are when used on
 problems with more timepoints. Finally, we compare solutions found by
 \cref{alg:a-exp-full} when the subproblems in each iteration are solved
-using a classical solver versus a quantum annealer.
+using a classical solver versus a quantum annealer. The code used in
+this section can be found at \url{https://gitlab.com/lklee/quantum-power-redispatch}.
 \subsection{Unbalanced Penalty Normalization}
 \label{sec:ex-unb-pen}
 \begin{figure}[t!]
@@ -1475,6 +1477,9 @@ This research has partly been funded by the Federal Ministry of
 Research, Technology and Space in Germany and the state of North-Rhine
 Westphalia as part of the Lamarr-Institute for Machine Learning and
 Artificial Intelligence.
+
+
+\IEEEtriggeratref{15}
 
 \bibliographystyle{IEEEtran}
 \bibliography{refs}
