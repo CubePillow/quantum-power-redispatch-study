@@ -252,7 +252,8 @@
 #let title-slide(..args) = touying-slide-wrapper(self => {
   let info = self.info + args.named()
     let body = {
-      set align(left + top)
+        set align(left + top)
+        v(1em)
       text(
           size: 30pt, fill: self.colors.neutral-darkest,
           weight: "bold", info.title)

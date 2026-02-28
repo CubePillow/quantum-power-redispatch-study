@@ -15,7 +15,7 @@
             "Tomislav Maras",
             "Alexander Dotterweich",
             "Nico Piatkowski"),
-        institutions: (logo_pwc_big, logo_iais_big),
+        institutions: (logo_iais_big, ),
     ),
 )
 
@@ -49,6 +49,26 @@
     let alone current day small and noisy quantum computers.
 ]
 
-#include "typ/decomp.typ"
+#include "typ/decomp-short.typ"
 #include "typ/moo.typ"
 #include "typ/exp.typ"
+
+#focus-slide[
+    #set align(left + top)
+    #set text(size: 30pt, weight: "semibold")
+    In conclusion:
+    
+    #set text(size: 25pt, weight: "regular")
+    - formulated the Power System Redispatch problem to a Quadratic Unconstrained Binary Optimisation (QUBO) problem
+    - approximated sums of indicator functions to formulate them as QUBOs
+    - used $alpha$-expansion to implicitly obey constraints during the iterative optimisation process itself
+]
+
+#let appendix(body) = {
+  set heading(numbering: "A", supplement: [Appendix])
+  body
+}
+
+#show: appendix
+#focus-slide[Appendix]
+#include "typ/decomp.typ"

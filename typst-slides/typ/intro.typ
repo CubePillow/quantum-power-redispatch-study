@@ -181,37 +181,28 @@
     #let sol = box(image("../img/solar.svg"), width: 1em, baseline: 15%)
     #let nuc = box(image("../img/nuclear.svg"), width: 1em, baseline: 15%)
     #set text(size: 20pt)
-    #uncover("1-")[
     Let $bold(Z)$ be a configuration of the system over $T$, then
         we want to ensure for $A := {wind, sol, coal, nuc}$:\
-    ]
     #align(center)[
-    #uncover("2-")[
         $forall t :
         sum_(a in A) p_(t, a)(bold(Z))- bold(tau)_t approx 0$]
         
-        #uncover("3-")[
         $forall t in [T - 1], a in A :
-        bold(Z)_(t, a) - bold(Z)_(t+1,a) <= 1$]
-        ]
-    #uncover("4-")[
-        While minimizing:]
+        bold(Z)_(t, a) - bold(Z)_(t+1,a) <= 1$
+    While minimizing:
     #align(center)[
-    #uncover("4-")[
         $C(bold(Z)) =
-        min_bold(Z) sum_(t=1)^T sum_(a in A) c_(t, a)(bold(Z))$]
+        min_bold(Z) sum_(t=1)^T sum_(a in A) c_(t, a)(bold(Z))$
         
-    #uncover("5-")[
         $W(bold(Z))=
         min_bold(Z) sum_(t=1)^(T-1) sum_(a in A)
-        s_(a)(bold(Z)_(t,a),bold(Z)_(t+1,a))$]
+        s_(a)(bold(Z)_(t,a),bold(Z)_(t+1,a))$
         
-    #uncover("6-")[
         $O(bold(Z))=
         min_bold(Z) sum_(t=1)^T sum_(l in"Lines")
-        bold(1){l" not overloaded"}$]
+        bold(1){l" not overloaded"}$
     ]
-    #uncover("7-")[
+    #uncover("2-")[
         #place(left + horizon, dx: -3em)[
             #block(fill: white, stroke: 5pt, inset: 1em)[
                 #text(weight: "bold", "Optimisation Problem")]]

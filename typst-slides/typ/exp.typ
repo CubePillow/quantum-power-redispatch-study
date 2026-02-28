@@ -4,16 +4,15 @@
 == Effect of normalisation
 #slide(composer: (2.5fr, 3fr), gutter: 1em)[
     #set text(size: 20pt)
-    - Because we know the minimum and maximum values of our
+    #v(3em)
+    - We know the extreme values of our
       objective functions
-      - Product Cost and Number of Overloads minimized when all
-        generators shut down
-      - Switching Cost minimized when no switches occurs
-    - We can normalise our objective functions before finding weights
-      for the multi-objective function
+        - eg. Production Cost minimized when all generators shut down
+    - Investigate the benefit of normalisation before finding weights
 ][
     #set text(size: 18pt)
     #set align(center + bottom) 
+    #v(3em)
     #image("../img/norm.png", height: 45%)
     We used $lambda_P = 1$ for the\ normalised multi-objective
     QUBO and\ $lambda_P = 1000$ for the un-normalised QUBO
@@ -21,12 +20,12 @@
 == Weights on larger problems
 #slide(composer: (2.5fr, 3fr), gutter: 1em)[
     #set text(size: 20pt)
-    - Because the process of finding these weights
-      is actually quite expensive
-      - Requires solving the multi-objective problem at each iteration
-    - We want to apply weights on smaller problems to
-      redispatch problems with more timesteps
+    #v(2em)
+    - Process of finding weights expensive
+    - Want to apply weights from smaller problems to
+      larger ones
     - Able to maintain $< 0.03%$ power production deviation
+    - Lower number of overloads on average
 ][
     #set text(size: 18pt)
     // #set align(center + bottom) 

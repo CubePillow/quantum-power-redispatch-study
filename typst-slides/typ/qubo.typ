@@ -131,7 +131,7 @@ align(center + horizon)[
         Q_H := mat(
         bold(O)_(4 times 3) ,
         mat(delim: #none,
-        #only("4-")[#text(fill: red, [$A$])]#only("3")[$A$],
+        A,
         dots.h.c, 0; dots.v, dots.down, dots.v; 0, dots.h.c, A
         );
         bold(O)_(4 times 3), bold(O)_(4 times 3))
@@ -173,8 +173,8 @@ align(center + horizon)[
 == Objectives to Minimise
 #let inlineFrac(a, b) = {
     return $#super(a) #h(-1pt) slash #h(-1pt) #sub(b)$ }
-#slide(composer: (2.25fr, 3fr), gutter: 2em, repeat: 8)[
-    #only("1,2,8")[
+#slide(composer: (2.25fr, 3fr), gutter: 2em, repeat: 7)[
+    #only("1,2,7")[
     #prob3()
     ]
     #set align(center)
@@ -185,51 +185,51 @@ align(center + horizon)[
     ]
     #set text(size: 15pt)
     #let xs = range(-20, 20).map(x => x/10)
-    #only("5")[
-        #let ys1 = xs.map(x => 1 / (1 + calc.exp(10*x)))
-        #let ys2 = xs.map(x => if (x <= 0) {1} else {0})
-        #show lq.selector(lq.legend): set grid(gutter: 5pt)
-        #lq.diagram(
-            lq.plot(xs, ys1, mark: none, smooth: true,
-                label: [$1 / (1 + e^(10x))$]
-            ),
-            lq.plot(xs, ys2, mark: none, smooth: true,
-                label: [$[x <= 0]$]
-            ),
-            // lq.plot(xs, ys3, mark: none, smooth: true,
-            //     label: [$[x < 0]$]
-            // ),
-            width: 8cm, height: 3.03cm,
-            yaxis: (position: -2.1, tip: tiptoe.stealth),
-            xaxis: (position: -0.1, tip: tiptoe.stealth, label: [$h(x)$]),
-            grid: none,
-        )
-    ]
-    #only("6-7")[
+    // #only("5")[
+    //     #let ys1 = xs.map(x => 1 / (1 + calc.exp(10*x)))
+    //     #let ys2 = xs.map(x => if (x <= 0) {1} else {0})
+    //     #show lq.selector(lq.legend): set grid(gutter: 5pt)
+    //     #lq.diagram(
+    //         lq.plot(xs, ys1, mark: none, smooth: true,
+    //             label: [$1 / (1 + e^(10x))$]
+    //         ),
+    //         lq.plot(xs, ys2, mark: none, smooth: true,
+    //             label: [$[x <= 0]$]
+    //         ),
+    //         // lq.plot(xs, ys3, mark: none, smooth: true,
+    //         //     label: [$[x < 0]$]
+    //         // ),
+    //         width: 8cm, height: 3.03cm,
+    //         yaxis: (position: -2.1, tip: tiptoe.stealth),
+    //         xaxis: (position: -0.1, tip: tiptoe.stealth, label: [$h(x)$]),
+    //         grid: none,
+    //     )
+    // ]
+    #only("5-6")[
         #set text(size: 15pt)
-        #let xs = range(-20, 20).map(x => x/10)
-        #let ys1 = xs.map(x => calc.exp(-1 * x))
-        #let ys2 = xs.map(x => 1 - x + calc.pow(x, 2) / 2)
+        #let xs = range(-10, 10).map(x => x/10)
+        #let ys1 = xs.map(x => calc.exp(-2 * (x + 0)))
+        #let ys2 = xs.map(x => (1 - 2 * x + calc.pow(x, 2) * 2))
         #let ys3 = xs.map(x => if(x < 0) { 1 } else {0})
         #lq.diagram(
             lq.plot(xs, ys1, mark: none, smooth: true,
-                label: [$e^(-h(x))$]
+                label: [$e^(-2 dot h(x))$]
             ),
             lq.plot(xs, ys2, mark: none, smooth: true,
-                label: [$1 - h(x) + 1/2 h(x)^2$]
+                label: [$1 - 2 h(x) + 4/2 h(x)^2$]
             ),
             // lq.plot(xs, ys3, mark: none, smooth: true,
             //     label: [$[x < 0]$]
             // ),
             width: 8cm, height: 3.215cm,
-            yaxis: (position: -2.1, tip: tiptoe.stealth),
+            yaxis: (position: -1.1, tip: tiptoe.stealth),
             xaxis: (position: -0.1, tip: tiptoe.stealth, label: [$h(x)$]),
             grid: none,
         )
     ]
 
 
-    #only("3-7")[
+    #only("3-6")[
         // #set align(center)
         #set text(17pt)
         // #v(0.735em)    
@@ -280,10 +280,10 @@ align(center + horizon)[
         where $w_(a)(i,j)$ is the cost of resource $a$ switching from
         $i$ to $j$.
     ]
-    #only("2-7")[
+    #only("2-6")[
         Number of overloaded lines more complicated
     ]
-    #only("3-7")[
+    #only("3-6")[
         $
             O(bold(x)) = sum_(t=1)^T sum_l^L
             cases(
@@ -291,31 +291,23 @@ align(center + horizon)[
             0  &"otherwise")
         $
     ]
-    #only("4-6")[
+    #only("4-5")[
         So we need to find a way to encode\
         $[[P(bold(x))S]_(t,l) >= [M]_(t,l)]$ as a quadratic function of
         $bold(x)$.
     ]
     
-    #only("5-6")[
-        Let $h(bold(x))_(t,l) = [M]_(t,l) - [P(bold(x))S]_(t,l)$, then
-    ]
     #only("5")[
-        $
-            [h(bold(x))_(t,l) <= 0]
-            approx 1 slash (1 +e^(c dot h(bold(x))_(t,l)))
-        $
-    ]
-    #only("6")[
+        Let $h(bold(x))_(t,l) = [M]_(t,l) - [P(bold(x))S]_(t,l)$, then
         $
             &[h(bold(x))_(t,l) <= 0]
-            approx 1 slash (1 +e^(c dot h(bold(x))_(t,l)))\
-                &approx e^(-c dot h(bold(x))_(t,l))\
+            // approx 1 slash (1 +e^(c dot h(bold(x))_(t,l)))\
+                approx e^(-c dot h(bold(x))_(t,l))\
                 &approx 1 - c dot h(bold(x))_(t,l)
                 + 1 / 2 [c dot h(bold(x))_(t,l)]^2
         $
     ]
-    #only("7")[
+    #only("6")[
         Let $h(bold(x))_(t,l) = [M]_(t,l) - [P(bold(x))S]_(t,l)$ then by
         using unbalanced penalisation we get
         $
@@ -325,7 +317,7 @@ align(center + horizon)[
         which is a quadratic function of $bold(x)$ since
         $[P(bold(x))S]_(t,l)$ is a linear function of $bold(x)$.
     ]
-    #only(8)[
+    #only(7)[
         Final QUBO problem:
         $
             op("arg min")_bold(x)
