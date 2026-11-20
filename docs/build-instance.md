@@ -57,7 +57,7 @@ The objective terms, two constraints, and their existing QUBO functions are expl
 | `examples/instances/small.json` | Original two-time input data and weights |
 | `examples/instances/three_steps.json` | Another example: three times and two lines |
 | `examples/redispatch_instance.py` | Reusable `RedispatchInstance`: input validation, objective evaluation, and constraint checks |
-| `examples/classical_solver.py` | Enumerates feasible schedules and finds weighted global minima |
+| `examples/classical_solver.py` | Enumerates feasible schedules and finds weighted global minimal |
 | `examples/small_instance.py` | Loads a JSON file and prints results |
 
 `RedispatchInstance.evaluate(states)` returns C/W/O/D. `is_feasible(states)` checks valid state selections and ramping directly. Each state entry selects exactly one level, so the classical search does not need a binary one-hot conversion.
@@ -94,3 +94,34 @@ Expected results:
 
 The first two cases show the main trade-off: spending 40 more removes two overloads. Both meet demand exactly. The switching case returns the same schedule here; these weights do not produce a separate switching trade-off.
 
+
+## Random three-generator SimBench example
+
+Randomly select three active `gen` units and solve a two-time-step, five-state instance:
+
+```bash
+python examples/small_instance.py --simbench
+```
+
+Set a seed to repeat the same selection, and specify weights in C, W, O, D order:
+
+```bash
+python examples/small_instance.py --simbench --seed 7 --weights 1 0 100 100
+```
+
+Optional arguments:
+
+- `--T 2`: number of time points, spaced two hours apart (default: 2). Alternatively use `--time-steps 0 8 16 24`; do not combine both options.
+- `--generate-only`: build input without solving, useful when a larger T exceeds the enumeration limit.
+- `--lines 2`: number of monitored physical lines.
+- `--output examples/instances/sample.json`: save the input and metadata without overwriting an existing file.
+
+Data loading is implemented in `RedispatchInstance.from_simbench()`. Output includes the selected generators, baseline outputs, demand, and optimal schedule.
+
+**Data and model:** We use SimBench profiles, the paper repository's fitted S with its P/L data, and costs sampled from Table II. Fixed resource contributions are subtracted from line capacities as in Eq. (47). Profile ordering is checked, individual external-grid labels remain unverified.
+
+This is a classical example without QUBO. Only selected lines are checked; demand mismatch may remain. Reactive power and the ramp from the initial operating state are not modeled.
+
+The supplied fitted matrix is reused, not re-estimated by rerunning Algorithm 4. Its training RMSE against the saved L array is printed (about 16.11 MW); metadata includes maximum error and coefficient range. The fit is approximate, so low predicted overload does not prove AC network feasibility. Random three-generator selection, sampled costs still differ from the full paper experiment.
+
+SimBench uses five output states following paper Eq. (42): if minimum output is positive, use 0 plus four equally spaced levels from minimum to maximum; if minimum is 0, use five equally spaced levels from 0 to maximum. For three generators and two times, this gives 15,625 candidate schedules and 2,197 ramp-feasible schedules. Ramp still permits at most one state change per step. Hand-written JSON files retain their own state counts.
