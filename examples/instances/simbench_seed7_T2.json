@@ -1,0 +1,161 @@
+{
+  "instance": {
+    "outputs": [
+      [
+        0.0,
+        50.0,
+        283.33333333333337,
+        516.6666666666667,
+        750.0
+      ],
+      [
+        0.0,
+        50.0,
+        252.0,
+        454.0,
+        656.0
+      ],
+      [
+        0.0,
+        343.4275,
+        686.855,
+        1030.2825,
+        1373.71
+      ]
+    ],
+    "unit_costs": [
+      59.528034191195616,
+      42.17308860002628,
+      67.51174030146825
+    ],
+    "demand": [
+      1510.654357443,
+      985.654357443
+    ],
+    "sensitivity": [
+      [
+        0.00694373779062131,
+        0.9163455102326555,
+        0.0026509133544834326
+      ],
+      [
+        0.0009029186044199316,
+        0.0001818460367808525,
+        0.8929531177644371
+      ]
+    ],
+    "limits": [
+      [
+        1202.1815849191146,
+        1179.292009431588
+      ],
+      [
+        621.5384986235533,
+        610.6339057640537
+      ]
+    ],
+    "switch_factor": 1.0
+  },
+  "metadata": {
+    "source": "SimBench benchmark and original repository P/L/S arrays; not live measurements",
+    "grid": "1-EHV-mixed--0-sw",
+    "seed": 7,
+    "time_step_indices": [
+      0,
+      8
+    ],
+    "profile_step_hours": 0.25,
+    "generators": [
+      {
+        "id": 41,
+        "name": "EHV Gen 42",
+        "type": "lignite",
+        "min_p_mw": 50.0,
+        "max_p_mw": 750.0
+      },
+      {
+        "id": 19,
+        "name": "EHV Gen 20",
+        "type": "lignite",
+        "min_p_mw": 50.0,
+        "max_p_mw": 656.0
+      },
+      {
+        "id": 315,
+        "name": "EHV Gen 316",
+        "type": "imp0",
+        "min_p_mw": 0.0,
+        "max_p_mw": 1373.71
+      }
+    ],
+    "baseline_outputs_mw": [
+      [
+        525.0,
+        459.2,
+        526.4543574429999
+      ],
+      [
+        0.0,
+        459.2,
+        526.4543574429999
+      ]
+    ],
+    "line_ids": [
+      19,
+      315
+    ],
+    "physical_line_count": 2,
+    "constraint_row_order": "one row per physical line, paper nonnegative-flow model",
+    "sensitivity_method": "Precomputed fitted S.npy supplied by original paper repository (Appendix B)",
+    "fit_rmse_mw": 16.10983675081333,
+    "fit_max_abs_error_mw": 236.19651937922652,
+    "fitted_coefficient_range": [
+      -0.0,
+      1.0
+    ],
+    "minimum_fitted_flow_mw": 0.0010091286386464367,
+    "row_validation": "gen/sgen/load match all 192 saved profiles; seven ext_grid rows kept together as fixed contributions, individual labels unverified",
+    "capacity_approximation": "sqrt(3) * nominal kV * rated kA; ignores reactive power",
+    "cost_source": "Uniform samples from paper Table II; not measured costs",
+    "demand_definition": "Selected generator baseline total; all other resources fixed",
+    "baseline_line_flows_mw": [
+      [
+        217.0267834736324,
+        97.35886114883183
+      ],
+      [
+        231.1742065989168,
+        106.41552672827159
+      ]
+    ],
+    "fitted_baseline_line_flows_mw": [
+      [
+        214.3783825358666,
+        96.80136266560699
+      ],
+      [
+        233.62249568331728,
+        107.23192325778605
+      ]
+    ],
+    "fixed_line_contribution_mw": [
+      [
+        -211.44852298971685,
+        -373.8552331412039
+      ],
+      [
+        -188.55894750219014,
+        -362.9506402817042
+      ]
+    ],
+    "note": "Uses supplied fit, does not rerun Algorithm 4. Only selected lines scored; no initial-state ramp; D may be nonzero."
+  },
+  "weights": {
+    "Illustrative fixed weights": [
+      1,
+      0,
+      100,
+      100
+    ]
+  }
+}
