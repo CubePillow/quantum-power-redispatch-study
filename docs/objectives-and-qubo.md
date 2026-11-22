@@ -1,6 +1,6 @@
 # Redispatch Objectives, Constraints, and QUBO Functions
 
-This note connects the Optimization problem in the one-page document to the small example and the existing QUBO code. For input data and running instructions, see [Building a Small Redispatch Example](build-instance.md).
+This note connects the Optimization problem in the one-page document to the small example and the existing QUBO code.
 
 ## Four objective terms
 

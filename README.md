@@ -28,7 +28,7 @@ experiments/
   create_models.py               build full models T2..T8
   experiments.py                 paper experiments (Pareto weights, transfer, D-Wave)
   data/sensitivity/S.npy         fitted sensitivity matrix S (lines x devices)
-examples/                        NEW: small instances, exact solver, QUBO check (see "How to run")
+examples/                        NEW: QUBO from SimBench, exact check (see "How to run")
 docs/                            notes on the small example and QUBO terms
 paper/                           LaTeX source of the paper
 ```
@@ -42,37 +42,25 @@ pip install numpy numba simbench pandapower dimod
 
 ## How to run
 
-Run from `examples/` (section 3 from `experiments/`).
+Run from `examples/`.
 
-### `small_instance.py` – exact solution by enumeration
+### `qubo_adapter.py` – QUBO encoding, solved exactly with `dimod.ExactSolver`
 
 ```bash
-python small_instance.py instances/small.json
-python small_instance.py --simbench --seed 1 --gens 2 --states 3 --T 2
+python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
 ```
 
 | Option | Meaning | Default |
 |---|---|---|
-| `input` | JSON instance file (or use `--simbench`) | – |
 | `--simbench` | build instance from SimBench: line first, then its most influential generators; all lines they can switch are monitored | off |
 | `--seed` | which switchable line is picked, and the costs | random |
-| `--gens` | generators n | 3 |
-| `--states` | states per generator k (≥ 3) | 5 |
+| `--gens` | generators n | 2 |
+| `--states` | states per generator k (≥ 3) | 3 |
 | `--T` | time points, 2 h apart (1–24) | 2 |
 | `--grid` | SimBench grid | `1-EHV-mixed--0-sw` |
-| `--weights C W O D` | objective weights | from JSON / `1 0 100 100` |
+| `--weights C W O D` | objective weights | `1 0 100 100` |
 | `--output` | save as JSON (no overwrite) | – |
-| `--max-schedules` | enumeration limit (k^(n·T)) | 1 000 000 |
-
-### `qubo_adapter.py` – QUBO vs. exact optimum
-
-```bash
-python qubo_adapter.py instances/small.json
-```
-
-| Option | Meaning |
-|---|---|
-| `input` | JSON instance file (max. n·k·T = 24 bits) |
+| `--max-bits` | limit for n·k·T (`dimod.ExactSolver` enumerates all 2^(n·k·T) bit strings) | 20 |
 
 ## How the paper uses SimBench (and what we change)
 
