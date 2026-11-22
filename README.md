@@ -29,6 +29,7 @@ experiments/
   experiments.py                 paper experiments (Pareto weights, transfer, D-Wave)
   data/sensitivity/S.npy         fitted sensitivity matrix S (lines x devices)
 examples/                        NEW: QUBO from SimBench, exact check (see "How to run")
+  legacy/                        Z-enumeration CLI and JSON examples (see docs/build-instance.md)
 docs/                            notes on the small example and QUBO terms
 paper/                           LaTeX source of the paper
 ```
