@@ -52,9 +52,15 @@ class RedispatchInstance:
             raise ValueError('Output levels must be strictly increasing')
 
     @classmethod
-    def from_simbench(cls, seed=None, time_steps=(0, 8), lines=2,
-                      grid="1-EHV-mixed--0-sw"):
+    def from_simbench(cls, seed=None, time_steps=(0, 8),
+                      grid="1-EHV-mixed--0-sw", gens=3, states=5, margin=0.1):
         """Return (instance, metadata), reusing the paper repository's fitted S.
+
+        Selection is line first, then generators: the seed picks one line
+        that `gens` generators can switch between overloaded and not
+        overloaded; its `gens` most influential generators are selected and
+        every line these generators can switch is monitored. All other
+        resources stay fixed at their profile values.
 
         Saved P/L/S remain paired. gen/sgen/load ordering is checked against
         all saved profile times. Individual ext_grid labels are not verified.
@@ -100,27 +106,52 @@ class RedispatchInstance:
             & net.gen.type.isin(COST_RANGES)]
         active = profiles[('gen', 'p_mw')].loc[time_steps, eligible.index].max(axis=0) > 0
         eligible = eligible.loc[active[active].index]
-        if len(eligible) < 3:
-            raise ValueError('Need three active generators with valid bounds and known cost types')
-        ids = rng.sample(list(eligible.index), 3)
-        selected = net.gen.loc[ids]
-        positions = net.gen.index.get_indexer(ids)
-        # Paper Eq. (42): five states, with zero included exactly once.
-        outputs = [([0.0] + np.linspace(float(row.min_p_mw),
-                                       float(row.max_p_mw), 4).tolist()
-                    if row.min_p_mw > 0 else
-                    np.linspace(0.0, float(row.max_p_mw), 5).tolist())
-                   for _, row in selected.iterrows()]
-        costs = [rng.uniform(*COST_RANGES[row['type']])
-                 for _, row in selected.iterrows()]
+        if not isinstance(gens, int) or gens < 1:
+            raise ValueError('gens must be a positive integer')
+        if not isinstance(states, int) or states < 3:
+            raise ValueError('states must be an integer >= 3 (off + min + max)')
+        if len(eligible) < gens:
+            raise ValueError(f'Only {len(eligible)} active generators with valid bounds and known cost types')
         capacities = (net.line.max_i_ka.to_numpy()
                       * net.line.from_bus.map(net.bus.vn_kv).to_numpy() * np.sqrt(3))
         valid = np.isfinite(capacities) & (capacities > 0) & net.line.in_service.to_numpy()
         candidates = np.flatnonzero(valid)
-        if not 1 <= lines <= len(candidates):
-            raise ValueError('Invalid number of monitored lines')
-        influence = np.ptp(fitted_S[candidates][:, positions], axis=1)
-        chosen = candidates[np.argsort(-influence, kind='stable')[:lines]]
+        elig_pos = net.gen.index.get_indexer(eligible.index)
+        elig_max = eligible.max_p_mw.to_numpy(dtype=float)
+        base_flow = fitted_S[:, :] @ P[:, time_steps]          # lines x T
+
+        def switchable(line_ids, pos, max_p):
+            """Lines whose remaining capacity lies strictly inside the flow
+            range of the selected generators (all off = 0 ... all at max)."""
+            S_sel = fitted_S[np.ix_(line_ids, pos)]
+            limit = (capacities[line_ids, None] - base_flow[line_ids]
+                     + S_sel @ P[pos][:, time_steps])
+            span = (S_sel @ max_p)[:, None]
+            return ((limit > margin * span) & (limit < (1 - margin) * span)).all(axis=1)
+
+        def top_gens(line):
+            order = np.argsort(-fitted_S[line, elig_pos], kind='stable')[:gens]
+            return np.sort(order)
+
+        options = [l for l in candidates
+                   if switchable([l], elig_pos[top_gens(l)], elig_max[top_gens(l)])[0]]
+        if not options:
+            raise ValueError(f'No line can be switched by {gens} generators; try a larger --gens')
+        first = rng.choice(options)
+        pick = top_gens(first)
+        ids = list(eligible.index[pick])
+        positions = elig_pos[pick]
+        chosen = candidates[switchable(candidates, positions, elig_max[pick])]
+        selected = net.gen.loc[ids]
+        # Paper Eq. (42): `states` levels, with zero included exactly once
+        # (paper uses states=5).
+        outputs = [([0.0] + np.linspace(float(row.min_p_mw),
+                                       float(row.max_p_mw), states - 1).tolist()
+                    if row.min_p_mw > 0 else
+                    np.linspace(0.0, float(row.max_p_mw), states).tolist())
+                   for _, row in selected.iterrows()]
+        costs = [rng.uniform(*COST_RANGES[row['type']])
+                 for _, row in selected.iterrows()]
         S = fitted_S[chosen][:, positions]
         base_outputs = P[positions][:, time_steps].T
         fixed = np.ones(P.shape[0], dtype=bool)
@@ -145,7 +176,8 @@ class RedispatchInstance:
                            for i, row in selected.iterrows()],
             'baseline_outputs_mw': base_outputs.tolist(),
             'line_ids': [int(net.line.index[i]) for i in chosen],
-            'physical_line_count': lines,
+            'physical_line_count': int(len(chosen)),
+            'selection': f'seed picks line {int(net.line.index[first])} among {len(options)} switchable lines; its {gens} most influential generators; all lines they can switch (margin {margin}) are monitored',
             'constraint_row_order': 'one row per physical line, paper nonnegative-flow model',
             'sensitivity_method': 'Precomputed fitted S.npy supplied by original paper repository (Appendix B)',
             'fit_rmse_mw': float(np.sqrt(np.mean(residual**2))),
@@ -159,7 +191,7 @@ class RedispatchInstance:
             'baseline_line_flows_mw': L[chosen][:, time_steps].T.tolist(),
             'fitted_baseline_line_flows_mw': prediction[chosen][:, time_steps].T.tolist(),
             'fixed_line_contribution_mw': fixed_flow.T.tolist(),
-            'note': 'Uses supplied fit, does not rerun Algorithm 4. Only selected lines scored; no initial-state ramp; D may be nonzero.',
+            'note': 'Uses supplied fit, does not rerun Algorithm 4. Only switchable lines scored; no initial-state ramp; D may be nonzero.',
         }
         return instance, metadata
 
