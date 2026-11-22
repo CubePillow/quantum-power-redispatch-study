@@ -67,13 +67,18 @@ def select_lines(sim_res, S, n_lines=2):
 
 def select_generators(sim_res, S, line_ids, n_gen=3, min_range_mw=1.0):
     """Generators with the largest summed |S| on the chosen lines.
-    Generators that cannot change their output are skipped."""
+    Generators that are out of service, produce nothing at the chosen
+    time points, have a negative minimum or cannot change their output
+    are skipped."""
     net = sim_res.net
     _, _, gen_cols, _ = _column_blocks(net)
     p_range = (net.gen["max_p_mw"] - net.gen["min_p_mw"]).to_numpy()
+    active = sim_res.reso_prods.max(axis=1) > 0
+    ok = (p_range >= min_range_mw) & (net.gen["min_p_mw"].to_numpy() >= 0) \
+        & net.gen["in_service"].to_numpy(dtype=bool) & active
     infl = np.abs(S[np.ix_(line_ids, gen_cols)]).sum(axis=0)
-    infl[p_range < min_range_mw] = -np.inf
-    return np.argsort(-infl)[:n_gen]
+    infl[~ok] = -np.inf
+    return np.argsort(-infl, kind="stable")[:n_gen]
 
 
 def reduced_capacity(sim_res, S, line_ids, gen_ids):
@@ -109,32 +114,39 @@ def is_controllable(sim_res, S, line_ids, gen_ids, margin=0.1):
 
 
 def select_lines_and_generators(
-    sim_res, S, n_lines=2, n_gen=3, n_candidates=200, margin=0.1
+    sim_res, S, n_lines=None, n_gen=3, n_candidates=None, margin=0.1,
+    seed=None,
 ):
-    """Greedy joint choice: take the most utilized line whose top
-    generators can switch it between overloaded / not overloaded, then
-    add further lines that are controllable by the same generators."""
+    """Joint choice, line first:
+      1. a line is a candidate if its `n_gen` most influential generators
+         can switch it between overloaded / not overloaded,
+      2. `seed` picks one candidate (None: the most utilized one),
+      3. its generators are selected, and further lines controllable by
+         the same generators are added (all of them if n_lines is None).
+    Candidates are ordered by utilization; `n_candidates` limits them."""
     util, _, _ = line_utilization(sim_res, S)
     score = util.max(axis=1)
     score[~np.isfinite(score)] = -np.inf
-    candidates = np.argsort(-score)[:n_candidates]
-    for first in candidates:
-        gens = select_generators(sim_res, S, [first], n_gen)
-        if not is_controllable(sim_res, S, [first], gens, margin):
-            continue
-        lines = [first]
-        for ln in candidates:
-            if len(lines) >= n_lines:
-                break
-            if ln in lines:
-                continue
-            if is_controllable(sim_res, S, lines + [ln], gens, margin):
-                lines.append(ln)
-        return np.array(lines), np.sort(gens)
-    raise ValueError(
-        "no controllable line found; increase n_gen / n_candidates "
-        "or lower margin"
-    )
+    candidates = np.argsort(-score, kind="stable")
+    candidates = candidates[np.isfinite(score[candidates])][:n_candidates]
+    options = [ln for ln in candidates
+               if is_controllable(sim_res, S, [ln],
+                                  select_generators(sim_res, S, [ln], n_gen),
+                                  margin)]
+    if not options:
+        raise ValueError(
+            f"no line can be switched by {n_gen} generators; "
+            "increase n_gen or lower margin"
+        )
+    first = options[0] if seed is None else         options[np.random.default_rng(seed).integers(len(options))]
+    gens = select_generators(sim_res, S, [first], n_gen)
+    lines = [first]
+    for ln in candidates:
+        if n_lines is not None and len(lines) >= n_lines:
+            break
+        if ln != first and is_controllable(sim_res, S, [ln], gens, margin):
+            lines.append(ln)
+    return np.array(lines), np.sort(gens), len(options)
 
 
 def create_line_aware_subset(
@@ -146,6 +158,7 @@ def create_line_aware_subset(
     line_ids=None,
     gen_ids=None,
     seed=0,
+    line_seed=None,
 ):
     """
     Build a small RedispatchModel:
@@ -155,15 +168,19 @@ def create_line_aware_subset(
          (or use `gen_ids`),
       3. fix all other generators and all sgens at their simulated
          production and subtract their flow from M.
+    `seed` draws the costs (RedispatchModel), `line_seed` picks the
+    line among all candidates (None: most utilized). `n_lines=None`
+    monitors every line the selected generators can switch.
     `sim_res` is not modified.
     """
     net = sim_res.net
     _, _, gen_cols, sgen_cols = _column_blocks(net)
     load_cols = np.arange(len(gen_cols) + len(sgen_cols), S.shape[1])
 
+    n_options = None
     if line_ids is None and gen_ids is None:
-        line_ids, gen_ids = select_lines_and_generators(
-            sim_res, S, n_lines, n_gen
+        line_ids, gen_ids, n_options = select_lines_and_generators(
+            sim_res, S, n_lines, n_gen, seed=line_seed
         )
     elif line_ids is None:
         line_ids = select_lines(sim_res, S, n_lines)
@@ -197,6 +214,7 @@ def create_line_aware_subset(
     Rd = ReducedRedispatchModel(sub_res, k, S_sub, fixed_flow, seed=seed)
     Rd.orig_line_ids = line_ids
     Rd.orig_gen_ids = gen_ids
+    Rd.n_line_options = n_options
     return Rd
 
 

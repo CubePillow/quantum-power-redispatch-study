@@ -21,7 +21,7 @@ package/quantum_energy/          original library (Lee et al.)
   problem/simulator.py           SimBench power flow, time-point selection
   problem/redispatch_stats.py    evaluate C, W, O, D and feasibility (Z form)
   problem/qubo.py                QUBO matrices Q_C, Q_S, Q_O, Q_P, Q_H, Q_A
-  problem/reduce.py              NEW: line-aware small instances (create_small_models)
+  problem/reduce.py              NEW: line-aware small instances (used by qubo_adapter --simbench)
   decompose.py                   alpha-expansion
   util.py                        x_invalids (one-hot + ramp check), helpers
 experiments/
@@ -53,7 +53,7 @@ python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
 
 | Option | Meaning | Default |
 |---|---|---|
-| `--simbench` | build instance from SimBench: line first, then its most influential generators; all lines they can switch are monitored | off |
+| `--simbench` | build instance as in Lee et al.: SimBench power flow + `S.npy` → `reduce.py` (line first, then its most influential generators; all lines they can switch are monitored) → `RedispatchModel` | off |
 | `--seed` | which switchable line is picked, and the costs | random |
 | `--gens` | generators n | 2 |
 | `--states` | states per generator k (≥ 3) | 3 |

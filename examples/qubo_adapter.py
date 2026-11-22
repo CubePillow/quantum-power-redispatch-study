@@ -143,7 +143,7 @@ def main():
         bits = args.gens * args.states * args.T
         if bits > args.max_bits:
             parser.error(f'{bits} bits > --max-bits {args.max_bits}; reduce --gens/--states/--T')
-        print('Loading SimBench...', flush=True)
+        print('SimBench power flow + S.npy (as in Lee et al.)...', flush=True)
         inst, meta = RedispatchInstance.from_simbench(
             seed=args.seed, time_steps=[8 * t for t in range(args.T)],
             grid=args.grid, gens=args.gens, states=args.states)

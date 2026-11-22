@@ -52,7 +52,7 @@ def main():
                      'Use smaller --gens/--states/--T or raise --max-schedules.')
     try:
         if args.simbench:
-            print('Loading SimBench benchmark (paper fitted S; synthetic costs)...', flush=True)
+            print('SimBench power flow + S.npy (as in Lee et al.)...', flush=True)
             instance, metadata = RedispatchInstance.from_simbench(
                 seed=args.seed, time_steps=time_steps,
                 grid=args.grid,
@@ -67,7 +67,6 @@ def main():
             print('Baseline outputs MW:', metadata['baseline_outputs_mw'])
             print('Demand MW:', instance.demand)
             print('Monitored physical line IDs:', metadata['line_ids'])
-            print('Fitted S training RMSE MW:', metadata['fit_rmse_mw'])
         else:
             data = json.loads(args.input.read_text(encoding='utf-8-sig'))
             instance = RedispatchInstance(**data['instance'])
