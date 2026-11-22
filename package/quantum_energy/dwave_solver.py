@@ -1,3 +1,4 @@
+import os
 import pickle
 
 import dimod
@@ -160,7 +161,7 @@ def d_wave(Q, dWaveAnnealing, sample_set_flag=False, fix_embedding=False, **para
 
 
 if __name__ == '__main__':
-    dwave = DWaveAnnealing(token="DEV-4dac0699f916fac35ed43bb467657db2e6a94126",region=None)
+    dwave = DWaveAnnealing(token=os.environ["API_DWAVE"],region=None)
     Q = qubolite.qubo.random(n=4)
     sample_set = d_wave(Q, dwave, sample_set_flag=True, num_reads=10)
     print(sample_set)
