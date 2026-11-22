@@ -1,3 +1,4 @@
+import os
 import time
 
 import cartopy.crs as ccrs
@@ -78,7 +79,7 @@ def run_digital_annealer_single(Q: ql.qubo):
     n_shots = 5
     t = 5
     backend = iaisevo.Backend(
-        "ZXlKamMzSm1YM1J2YTJWdUlqb2lOamRrTnpNMVlUWTVZMkU0TURneVpHVXhNREJtTW1ZM1pEQTNNRFJtTW1Wa01UZG1PRGN3TWlJc0luVnpaWElpT2lKc2JHVmxJbjAuWmVtX2dBLk5OM0U3V25TN1FyWVktX29zekt5WVhBbkt0MA=="
+        os.environ["API_DIGITAL_ANNEALER"]
     )
     J = backend.run(Q.m, shots=n_shots, time=t)
     time.sleep(t)

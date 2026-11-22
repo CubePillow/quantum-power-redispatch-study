@@ -15,15 +15,13 @@ else:
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('input', nargs='?', type=Path, help='Path to a JSON instance file')
-    parser.add_argument('--simbench', action='store_true', help='Generate three random gen units instead of reading JSON')
+    parser.add_argument('--simbench', action='store_true', help='Build an instance from SimBench (line first, then generators)')
+    parser.add_argument('--gens', type=int, default=3, help='SimBench: number of generators n (default: 3)')
+    parser.add_argument('--states', type=int, default=5, help='SimBench: states per generator k, >= 3 (default: 5, as in the paper)')
     parser.add_argument('--weights', type=float, nargs=4, metavar=('C', 'W', 'O', 'D'),
                         help='Override objective weights in C W O D order')
     parser.add_argument('--seed', type=int)
-    times = parser.add_mutually_exclusive_group()
-    times.add_argument('--T', type=int, help='Number of SimBench times, two hours apart (default: 2)')
-    times.add_argument('--time-steps', type=int, nargs='+', help='Explicit increasing profile indices')
-    parser.add_argument('--generate-only', action='store_true', help='Build and optionally save input without enumeration')
-    parser.add_argument('--lines', type=int, default=2)
+    parser.add_argument('--T', type=int, help='Number of SimBench times, two hours apart (default: 2)')
     parser.add_argument('--grid', default='1-EHV-mixed--0-sw')
     parser.add_argument('--output', type=Path, help='Save a new JSON file; will not overwrite')
     parser.add_argument('--max-schedules', type=int, default=1_000_000,
@@ -33,21 +31,29 @@ def main():
         parser.error('Provide either a JSON path or --simbench, not both')
     if args.output and args.output.exists():
         parser.error('Output already exists; choose a new path')
-    if not args.simbench and (args.T is not None or args.time_steps is not None):
-        parser.error('--T and --time-steps apply only to --simbench')
+    if not args.simbench and args.T is not None:
+        parser.error('--T applies only to --simbench')
     if args.T is not None and not 1 <= args.T <= 24:
         parser.error('--T must be 1 to 24 for the saved 192-step data at two-hour spacing')
-    time_steps = args.time_steps if args.time_steps is not None else [8 * t for t in range(args.T if args.T is not None else 2)]
-    if args.simbench and (not time_steps or any(t < 0 or t > 191 for t in time_steps) or any(a >= b for a, b in zip(time_steps, time_steps[1:]))):
-        parser.error('Time indices must increase and be in 0..191')
-    if args.simbench and not args.generate_only and 5 ** (3 * len(time_steps)) > args.max_schedules:
-        parser.error('Requested T exceeds the enumeration limit. Use --generate-only to build the input without solving, or a smaller T.')
+    time_steps = [8 * t for t in range(args.T if args.T is not None else 2)]
+    if not args.simbench and (args.gens != 3 or args.states != 5):
+        parser.error('--gens and --states apply only to --simbench')
+    if args.gens < 1 or args.states < 3:
+        parser.error('--gens must be >= 1 and --states >= 3')
+    if args.simbench:
+        print(f'Size: n={args.gens} generators, k={args.states} states, '
+              f'T={len(time_steps)} -> {args.states ** (args.gens * len(time_steps))} schedules, '
+              f'{args.gens * args.states * len(time_steps)} QUBO bits', flush=True)
+    if args.simbench and args.states ** (args.gens * len(time_steps)) > args.max_schedules:
+        parser.error('Instance exceeds the enumeration limit (k^(n*T) schedules). '
+                     'Use smaller --gens/--states/--T or raise --max-schedules.')
     try:
         if args.simbench:
             print('Loading SimBench benchmark (paper fitted S; synthetic costs)...', flush=True)
             instance, metadata = RedispatchInstance.from_simbench(
                 seed=args.seed, time_steps=time_steps,
-                lines=args.lines, grid=args.grid)
+                grid=args.grid,
+                gens=args.gens, states=args.states)
             data = {'instance': asdict(instance), 'metadata': metadata,
                     'weights': {'Illustrative fixed weights': [1, 0, 100, 100]}}
             print('Seed:', metadata['seed'])
@@ -73,13 +79,6 @@ def main():
                     not isinstance(w, (int, float)) or not isfinite(w) or w < 0
                     for w in weights):
                 raise ValueError('Each weight case needs four nonnegative finite C/W/O/D weights')
-        if args.generate_only:
-            print(f'Built {instance.T} time steps; optimization skipped.')
-            if args.output:
-                with args.output.open('x', encoding='utf-8') as stream:
-                    json.dump(data, stream, indent=2)
-                print('Saved:', args.output)
-            return
         count = instance.k ** (instance.T * instance.n)
         if args.max_schedules < 1 or count > args.max_schedules:
             raise ValueError(f'{count} schedules exceeds enumeration limit; use a smaller instance or --max-schedules')

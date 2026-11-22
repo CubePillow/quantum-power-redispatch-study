@@ -285,7 +285,7 @@ methods_to_test = {
 # ql_Q = ql.qubo(Q + A)
 
 # dwave = DWaveAnnealing(
-#     token="DEV-4dac0699f916fac35ed43bb467657db2e6a94126",region=None)
+#     token=os.environ["API_DWAVE"],region=None)
 
 # full_run.run(
 #     lambda Q: d_wave(Q, dwave, sample_set_flag=True, num_reads=10
@@ -299,11 +299,11 @@ methods_to_test = {
 #     'a-expansion': (subsize, run_digital_annealer_single),
 #     'random': ocean_subsolver_factory(
 #         dwh.RandomSubproblemDecomposer(size=subsize)
-#         | DigitalAnnealerSubproblemSampler("ZXlKamMzSm1YM1J2YTJWdUlqb2lOamRrTnpNMVlUWTVZMkU0TURneVpHVXhNREJtTW1ZM1pEQTNNRFJtTW1Wa01UZG1PRGN3TWlJc0luVnpaWElpT2lKc2JHVmxJbjAuWmVtX2dBLk5OM0U3V25TN1FyWVktX29zekt5WVhBbkt0MA==") | dwh.SplatComposer()),
+#         | DigitalAnnealerSubproblemSampler(os.environ["API_DIGITAL_ANNEALER"]) | dwh.SplatComposer()),
 #     'energy': ocean_subsolver_factory(
 #         dwh.EnergyImpactDecomposer(
 #             size=subsize, rolling=True, rolling_history=1.0
-#         ) | DigitalAnnealerSubproblemSampler("ZXlKamMzSm1YM1J2YTJWdUlqb2lOamRrTnpNMVlUWTVZMkU0TURneVpHVXhNREJtTW1ZM1pEQTNNRFJtTW1Wa01UZG1PRGN3TWlJc0luVnpaWElpT2lKc2JHVmxJbjAuWmVtX2dBLk5OM0U3V25TN1FyWVktX29zekt5WVhBbkt0MA==") | dwh.SplatComposer())
+#         ) | DigitalAnnealerSubproblemSampler(os.environ["API_DIGITAL_ANNEALER"]) | dwh.SplatComposer())
 # }
 # name_to_subsolvers = {
 #    "a-expansion": (subsize, ocean_sampler_adapter(dws.TabuSampler())),

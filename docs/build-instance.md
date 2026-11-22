@@ -95,15 +95,15 @@ Expected results:
 The first two cases show the main trade-off: spending 40 more removes two overloads. Both meet demand exactly. The switching case returns the same schedule here; these weights do not produce a separate switching trade-off.
 
 
-## Random three-generator SimBench example
+## SimBench example
 
-Randomly select three active `gen` units and solve a two-time-step, five-state instance:
+Pick a line that a few generators can switch between overloaded and not overloaded, take its most influential `gen` units (default 3), monitor every line they can switch, and solve a two-time-step, five-state instance:
 
 ```bash
 python examples/small_instance.py --simbench
 ```
 
-Set a seed to repeat the same selection, and specify weights in C, W, O, D order:
+Set a seed to repeat the same line choice and costs, and specify weights in C, W, O, D order:
 
 ```bash
 python examples/small_instance.py --simbench --seed 7 --weights 1 0 100 100
@@ -111,9 +111,7 @@ python examples/small_instance.py --simbench --seed 7 --weights 1 0 100 100
 
 Optional arguments:
 
-- `--T 2`: number of time points, spaced two hours apart (default: 2). Alternatively use `--time-steps 0 8 16 24`; do not combine both options.
-- `--generate-only`: build input without solving, useful when a larger T exceeds the enumeration limit.
-- `--lines 2`: number of monitored physical lines.
+- `--T 2`: number of time points, spaced two hours apart (default: 2).
 - `--output examples/instances/sample.json`: save the input and metadata without overwriting an existing file.
 
 Data loading is implemented in `RedispatchInstance.from_simbench()`. Output includes the selected generators, baseline outputs, demand, and optimal schedule.
