@@ -1,8 +1,8 @@
 """Exact classical baseline as a mixed-integer program, solved with Gurobi.
 
 Usage:
-  python3 examples/milp_solver.py examples/instances/small.json
-  python3 examples/milp_solver.py examples/instances/small.json --check
+  python3 examples/milp_solver.py examples/legacy/instances/small.json
+  python3 examples/milp_solver.py examples/legacy/instances/small.json --check
 """
 import argparse
 import json
