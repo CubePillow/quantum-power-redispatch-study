@@ -63,6 +63,9 @@ python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2 --solver al
 | `--weights C W O D` | objective weights | `1 0 100 100` |
 | `--output` | save as JSON (no overwrite) | – |
 | `--solver` | `exact` (`dimod.ExactSolver`, all bit strings) · `tabu` (`TabuSampler` on the whole QUBO) · `aexp` (alpha-expansion + Tabu of the original repository, as in the paper) · `all` | `exact` |
+| `--max-schedules` | limit for Z enumeration (k^(n·T)); above it only MILP gives the true optimum and no rank is shown | 1 000 000 |
+
+The true optimum of the original problem (exact O) is always printed first: Z enumeration and MILP (`milp_solver.py`, Gurobi), which must agree.
 | `--num-reads` | `tabu`: independent runs | 20 |
 | `--sub-size` | `aexp`: subproblem size | 6 |
 | `--max-bits` | `exact`: limit for n·k·T (enumerates all 2^(n·k·T) bit strings) | 20 |

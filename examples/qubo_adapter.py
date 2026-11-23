@@ -2,7 +2,14 @@
 
 JSON or SimBench instance -> RedispatchQUBO (package/.../qubo.py) -> Q
 -> QUBO solver -> decode -> C, W, O, D
--> compared with the exact enumeration of classical_solver.py.
+-> compared with the true optimum of the original problem (exact O):
+   Z enumeration (classical_solver.py), or MILP if the instance is too large.
+
+True optimum of the original problem (exact O), always printed:
+  Z enumeration (classical_solver.py, if k^(n*T) <= --max-schedules) and
+  MILP (milp_solver.py, Gurobi); both must agree.
+QUBO solvers (--solver): exact (dimod.ExactSolver), tabu, aexp (alpha-
+expansion + Tabu, as in the paper).
 
 QUBO solvers (--solver):
   exact  dimod.ExactSolver: all 2^(n*k*T) bit strings (exact)
@@ -84,6 +91,7 @@ def instance_to_model(inst: RedispatchInstance):
 def build_qubo(inst, weights, lam_hard=None):
     """Q = w_C*Q_C + w_W*Q_S + w_O*Q_O + w_D*Q_P + lam_H*Q_H + lam_A*Q_A.
 
+    Encoding: RedispatchQUBO of the original repository.
     The repository's get_qubo_obj omits Q_H (one-hot) and Q_A (ramp)
     because alpha-expansion keeps them by construction; a plain QUBO
     solver (or baseline QAOA) needs them as penalties.
@@ -188,6 +196,8 @@ def main():
                         help='QUBO solver (default: exact)')
     parser.add_argument('--num-reads', type=int, default=20, help='tabu: independent runs (default: 20)')
     parser.add_argument('--sub-size', type=int, default=6, help='aexp: subproblem size (default: 6)')
+    parser.add_argument('--max-schedules', type=int, default=1_000_000,
+                        help='limit for k^(n*T) enumerated schedules (default: 1000000)')
     parser.add_argument('--max-bits', type=int, default=20,
                         help='exact: limit for n*k*T; dimod.ExactSolver keeps all 2^(n*k*T) results in memory (default: 20)')
     args = parser.parse_args()
@@ -220,11 +230,31 @@ def main():
     print(f'{inst.n} generators, {inst.T} time steps, {inst.k} states '
           f'-> {N} binary variables (qubits), 2^{N} bit strings')
 
-    records = enumerate_feasible(inst.T, inst.n, inst.k,
-                                 inst.evaluate, inst.is_feasible)
-    _, _, rq0 = build_qubo(inst, [1, 1, 1, 1])
-    print(f'Check Q_C/Q_S/Q_P vs exact C/W/D on {len(records)} feasible '
-          f'schedules: max rel. error {check_exact_terms(inst, rq0, records):.2e}')
+    count = inst.k ** (inst.n * inst.T)
+    records = None
+    if count <= args.max_schedules:
+        records = enumerate_feasible(inst.T, inst.n, inst.k,
+                                     inst.evaluate, inst.is_feasible)
+        _, _, rq0 = build_qubo(inst, [1, 1, 1, 1])
+        print(f'Check Q_C/Q_S/Q_P vs exact C/W/D on {len(records)} feasible '
+              f'schedules: max rel. error {check_exact_terms(inst, rq0, records):.2e}')
+    else:
+        print(f'{count} schedules > --max-schedules: no enumeration, no rank')
+
+    def true_optimum(weights):
+        """Original problem (exact O): Z enumeration and MILP (Gurobi).
+        Both are printed; with both available they must agree."""
+        results = {}
+        if records is not None:
+            results['Z enumeration'] = solve_exact(records, weights)
+        try:
+            from milp_solver import solve   # original problem, exact O
+            results['MILP'] = solve(inst, weights)
+        except ImportError:
+            print('  MILP skipped (pip install gurobipy)')
+        if not results:
+            raise SystemExit('no true optimum: instance too large for enumeration and no Gurobi')
+        return results
 
     solvers = {
         'exact': lambda Q, Q_obj: solve_qubo_exact(Q, max_bits=args.max_bits),
@@ -233,26 +263,39 @@ def main():
     }
     names = list(solvers) if args.solver == 'all' else [args.solver]
     for name, weights in cases.items():
-        ex_states, ex_terms, ex_score = solve_exact(records, weights)
-        Q, Q_obj, _ = build_qubo(inst, weights)
         print(f'\n{name}; weights (C,W,O,D)={weights}')
-        print(f'  true optimum (Z enumeration): states={ex_states} C,W,O,D={ex_terms} score={ex_score:g}')
+        print('  true optimum (original problem, exact O):')
+        refs = true_optimum(weights)
+        for label, (st, te, sc) in refs.items():
+            print(f'    {label:13}: states={tuple(st)} C,W,O,D={te} score={sc:g}')
+        if len(refs) == 2:
+            a, b = (r[2] for r in refs.values())
+            print('    ->', 'enumeration and MILP agree' if abs(a - b) <= 1e-6 * max(1.0, abs(a))
+                  else 'MISMATCH between enumeration and MILP')
+        ex_states, ex_terms, ex_score = next(iter(refs.values()))
+        Q, Q_obj, _ = build_qubo(inst, weights)
+        print('  QUBO solvers:')
         for solver in names:
             try:
                 x, energy = solvers[solver](Q, Q_obj)
             except ValueError as exc:
-                print(f'  {solver:5}: skipped ({exc})')
+                print(f'    {solver:5}: skipped ({exc})')
                 continue
             states = decode(x, inst)
             if states is None or not inst.is_feasible(states):
-                print(f'  {solver:5}: infeasible bit string')
+                print(f'    {solver:5}: infeasible bit string')
                 continue
             terms = inst.evaluate(states)
             score = weighted_score(terms, weights)
-            rank = 1 + sum(weighted_score(t, weights) < score - 1e-9 for _, t in records)
-            verdict = ('= true optimum' if abs(score - ex_score) <= 1e-9 * max(1.0, abs(ex_score))
-                       else f'rank {rank} of {len(records)}')
-            print(f'  {solver:5}: states={states} C,W,O,D={terms} score={score:g} -> {verdict}')
+            if abs(score - ex_score) <= 1e-9 * max(1.0, abs(ex_score)):
+                verdict = '= true optimum'
+            else:
+                gap = f'gap {100 * (score - ex_score) / max(1e-12, abs(ex_score)):.3g} %'
+                if records is not None:
+                    rank = 1 + sum(weighted_score(t, weights) < score - 1e-9 for _, t in records)
+                    gap += f', rank {rank} of {len(records)}'
+                verdict = gap
+            print(f'    {solver:5}: states={states} C,W,O,D={terms} score={score:g} -> {verdict}')
 
     if args.output:
         with args.output.open('x', encoding='utf-8') as stream:
