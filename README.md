@@ -63,6 +63,20 @@ python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
 | `--output` | save as JSON (no overwrite) | – |
 | `--max-bits` | limit for n·k·T (`dimod.ExactSolver` enumerates all 2^(n·k·T) bit strings) | 20 |
 
+### `print_data.py` – preview of the data used by the model
+
+```bash
+python print_data.py
+python print_data.py --show flow instance --seed 2
+```
+
+| Option | Meaning | Default |
+|---|---|---|
+| `--show` | sections: `net flow levels costs capacity s instance` | all |
+| `--rows` | rows per table | 3 |
+| `--T` | time points, 2 h apart | 2 |
+| `--seed`, `--gens`, `--states` | small instance shown in `instance` (same selection as `qubo_adapter.py`) | 1, 2, 3 |
+
 ## How the paper uses SimBench (and what we change)
 
 1. Grid `1-EHV-mixed--0-sw`: 338 generators, 225 sgens, 397 loads/ext. grids, 849 lines.
