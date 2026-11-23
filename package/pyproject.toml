@@ -1,0 +1,46 @@
+[build-system]
+requires = [
+    "setuptools>=68.2.2",
+    "numpy>=1.23.5",
+    "pybind11"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "quantum-energy"
+version = "1.0"
+authors = [
+    { name = "Loong Kuan Lee", email="loong.kuan.lee@iais.fraunhofer.de" },
+    { name = "David Biesner", email="david.biesner@iais.fraunhofer.de" },
+    { name = "Nico Piatkowski", email="nico.piatkowski@iais.fraunhofer.de" }
+]
+description = "quantum-energy Project"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3"
+]
+dependencies = [
+    "numpy>=1.23.5",
+    "numba",
+    "qubolite",
+    "polars",
+    "simbench",
+    'pybind11'
+]
+
+[tool.black]
+line-length = 72
+target-version = ['py37']
+
+[tool.ruff]
+line-length = 72
+indent-width = 4
+
+[tool.ruff.lint]
+select = ['I', 'E', 'F']
+ignore = ['E741', 'D211', 'D213']
+
+[tool.isort]
+line_length = 72
+profile = 'black'

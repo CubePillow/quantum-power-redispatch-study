@@ -1,0 +1,10 @@
+* Title
+- Today I'll be presenting our work on
+- Formulating the Power System Redispatch problem
+- such that find solutions for it using quantum computing
+* So first of all, what is the power system Redispatch problem
+- well, in real world power grids
+- production and demand can be concentrated in certain areas
+  + and transmitting the power between these areas
+  + can cause some lines to transmit more power than they are rated to 
+- for instance

@@ -1,0 +1,6 @@
+clang++
+%h -x c++-header
+%cpp -std=c++11
+%c -std=c11
+-I/usr/include/python3.10/
+-I/usr/include/
