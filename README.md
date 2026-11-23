@@ -38,17 +38,18 @@ paper/                           LaTeX source of the paper
 
 Python ≥ 3.10.
 ```bash
-pip install numpy numba simbench pandapower dimod
+pip install numpy numba simbench pandapower dimod dwave-samplers dwave-hybrid
 ```
 
 ## How to run
 
 Run from `examples/`.
 
-### `qubo_adapter.py` – QUBO encoding, solved exactly with `dimod.ExactSolver`
+### `qubo_adapter.py` – QUBO encoding, solved with exact / Tabu / alpha-expansion
 
 ```bash
 python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
+python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2 --solver all
 ```
 
 | Option | Meaning | Default |
@@ -61,7 +62,10 @@ python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
 | `--grid` | SimBench grid | `1-EHV-mixed--0-sw` |
 | `--weights C W O D` | objective weights | `1 0 100 100` |
 | `--output` | save as JSON (no overwrite) | – |
-| `--max-bits` | limit for n·k·T (`dimod.ExactSolver` enumerates all 2^(n·k·T) bit strings) | 20 |
+| `--solver` | `exact` (`dimod.ExactSolver`, all bit strings) · `tabu` (`TabuSampler` on the whole QUBO) · `aexp` (alpha-expansion + Tabu of the original repository, as in the paper) · `all` | `exact` |
+| `--num-reads` | `tabu`: independent runs | 20 |
+| `--sub-size` | `aexp`: subproblem size | 6 |
+| `--max-bits` | `exact`: limit for n·k·T (enumerates all 2^(n·k·T) bit strings) | 20 |
 
 ### `print_data.py` – preview of the data used by the model
 
