@@ -1,13 +1,14 @@
-"""Build the original repository's QUBO from a JSON instance and check it.
+"""Encode an instance as the original repository's QUBO and solve it.
 
-JSON instance -> RedispatchQUBO (package/quantum_energy/problem/qubo.py)
--> brute force over all 2^(T*n*k) bit strings -> compare with the exact
-enumeration of classical_solver.py.
+JSON or SimBench instance -> RedispatchQUBO (package/.../qubo.py) -> Q
+-> dimod.ExactSolver (all 2^(n*k*T) bit strings) -> decode -> C, W, O, D
+-> compared with the exact enumeration of classical_solver.py.
 
 Usage:
-    python qubo_adapter.py instances/small.json
+    python qubo_adapter.py --simbench --seed 1 --gens 2 --states 3 --T 2
 """
 import argparse
+from dataclasses import asdict
 import json
 import sys
 from pathlib import Path
@@ -80,21 +81,14 @@ def build_qubo(inst, weights, lam_hard=None):
     return Q, Q_obj, rq
 
 
-def brute_force_qubo(Q, chunk=1 << 16):
-    """Exact minimum of x^T Q x over all bit strings (N <= ~24)."""
+def solve_qubo_exact(Q, max_bits=20):
+    """Exact minimum of x^T Q x with dimod.ExactSolver (all 2^N bit strings)."""
+    import dimod
     N = len(Q)
-    if N > 24:
-        raise ValueError(f'{N} bits is too many for brute force')
-    best_e, best_x = np.inf, None
-    bits = np.arange(N)[::-1]
-    for start in range(0, 1 << N, chunk):
-        idx = np.arange(start, min(start + chunk, 1 << N))
-        X = ((idx[:, None] >> bits) & 1).astype(float)
-        E = np.einsum('bi,ij,bj->b', X, Q, X)
-        j = int(np.argmin(E))
-        if E[j] < best_e:
-            best_e, best_x = E[j], X[j].astype(int)
-    return best_x, best_e
+    if N > max_bits:
+        raise ValueError(f'{N} bits > {max_bits}; use a smaller instance')
+    best = dimod.ExactSolver().sample(dimod.BinaryQuadraticModel(Q, 'BINARY')).first
+    return np.array([best.sample[i] for i in range(N)]), best.energy
 
 
 def decode(x, inst):
@@ -123,15 +117,55 @@ def check_exact_terms(inst, rq, records):
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('input', type=Path)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('input', nargs='?', type=Path, help='JSON instance file (or use --simbench)')
+    parser.add_argument('--simbench', action='store_true',
+                        help='build instance from SimBench: line first, then its most influential generators')
+    parser.add_argument('--seed', type=int, help='which switchable line is picked, and the costs')
+    parser.add_argument('--gens', type=int, default=2, help='generators n (default: 2)')
+    parser.add_argument('--states', type=int, default=3, help='states per generator k, >= 3 (default: 3)')
+    parser.add_argument('--T', type=int, default=2, help='time points, 2 h apart, 1-24 (default: 2)')
+    parser.add_argument('--grid', default='1-EHV-mixed--0-sw', help='SimBench grid')
+    parser.add_argument('--weights', type=float, nargs=4, metavar=('C', 'W', 'O', 'D'),
+                        help='objective weights (default: from JSON / 1 0 100 100)')
+    parser.add_argument('--output', type=Path, help='save instance as JSON (no overwrite)')
+    parser.add_argument('--max-bits', type=int, default=20,
+                        help='limit for n*k*T; dimod.ExactSolver keeps all 2^(n*k*T) results in memory (default: 20)')
     args = parser.parse_args()
-    data = json.loads(args.input.read_text(encoding='utf-8-sig'))
-    inst = RedispatchInstance(**data['instance'])
+    if bool(args.input) == args.simbench:
+        parser.error('Provide either a JSON path or --simbench')
+    if args.output and args.output.exists():
+        parser.error('Output already exists; choose a new path')
+    if args.simbench:
+        if not 1 <= args.T <= 24 or args.gens < 1 or args.states < 3:
+            parser.error('Need --T in 1..24, --gens >= 1, --states >= 3')
+        bits = args.gens * args.states * args.T
+        if bits > args.max_bits:
+            parser.error(f'{bits} bits > --max-bits {args.max_bits}; reduce --gens/--states/--T')
+        print('SimBench power flow + S.npy (as in Lee et al.)...', flush=True)
+        inst, meta = RedispatchInstance.from_simbench(
+            seed=args.seed, time_steps=[8 * t for t in range(args.T)],
+            grid=args.grid, gens=args.gens, states=args.states)
+        data = {'instance': asdict(inst), 'metadata': meta,
+                'weights': {'Illustrative fixed weights': [1, 0, 100, 100]}}
+        print('Seed:', meta['seed'])
+        for a, gen in enumerate(meta['generators']):
+            print(f"Generator {a}: {gen['name']} (id={gen['id']}), "
+                  f"levels={inst.outputs[a]}, cost={inst.unit_costs[a]:.4f}")
+        print('Demand MW:', inst.demand)
+        print('Monitored line IDs:', meta['line_ids'])
+    else:
+        data = json.loads(args.input.read_text(encoding='utf-8-sig'))
+        inst = RedispatchInstance(**data['instance'])
+    if args.weights is not None:
+        data['weights'] = {'Custom weights': args.weights}
     cases = data.get('weights', {'Default': [1, 1, 100, 100]})
     N = inst.T * inst.n * inst.k
+    if N > args.max_bits:
+        parser.error(f'{N} bits > --max-bits {args.max_bits}')
     print(f'{inst.n} generators, {inst.T} time steps, {inst.k} states '
-          f'-> {N} binary variables (qubits)')
+          f'-> {N} binary variables (qubits), 2^{N} bit strings')
 
     records = enumerate_feasible(inst.T, inst.n, inst.k,
                                  inst.evaluate, inst.is_feasible)
@@ -142,7 +176,7 @@ def main():
     for name, weights in cases.items():
         ex_states, ex_terms, ex_score = solve_exact(records, weights)
         Q, _, _ = build_qubo(inst, weights)
-        x, energy = brute_force_qubo(Q)
+        x, energy = solve_qubo_exact(Q, max_bits=args.max_bits)
         states = decode(x, inst)
         print(f'\n{name}; weights (C,W,O,D)={weights}')
         print(f'  exact : states={ex_states} C,W,O,D={ex_terms} score={ex_score:g}')
@@ -157,6 +191,11 @@ def main():
         print('  ->', 'same optimum' if abs(score - ex_score) < 1e-9 else
               f'differs (rank {rank} of {len(records)}; '
               'Q_O only approximates the overload count)')
+
+    if args.output:
+        with args.output.open('x', encoding='utf-8') as stream:
+            json.dump(data, stream, indent=2)
+        print('Saved:', args.output)
 
 
 if __name__ == '__main__':

@@ -1,15 +1,18 @@
-"""Solve an explicit JSON input or a random SimBench instance classically."""
+"""Legacy: solve a JSON or SimBench instance by enumerating states Z (no QUBO).
+
+The true optimum it prints is also used by ../qubo_adapter.py to check the QUBO.
+"""
 import argparse
 from dataclasses import asdict
 import json
 from pathlib import Path
 
-if __package__:
-    from .classical_solver import enumerate_feasible, solve_exact
-    from .redispatch_instance import RedispatchInstance
-else:
-    from classical_solver import enumerate_feasible, solve_exact
-    from redispatch_instance import RedispatchInstance
+import sys
+
+# shared modules live one folder up (examples/)
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from classical_solver import enumerate_feasible, solve_exact  # noqa: E402
+from redispatch_instance import RedispatchInstance  # noqa: E402
 
 
 def main():
@@ -49,7 +52,7 @@ def main():
                      'Use smaller --gens/--states/--T or raise --max-schedules.')
     try:
         if args.simbench:
-            print('Loading SimBench benchmark (paper fitted S; synthetic costs)...', flush=True)
+            print('SimBench power flow + S.npy (as in Lee et al.)...', flush=True)
             instance, metadata = RedispatchInstance.from_simbench(
                 seed=args.seed, time_steps=time_steps,
                 grid=args.grid,
@@ -64,7 +67,6 @@ def main():
             print('Baseline outputs MW:', metadata['baseline_outputs_mw'])
             print('Demand MW:', instance.demand)
             print('Monitored physical line IDs:', metadata['line_ids'])
-            print('Fitted S training RMSE MW:', metadata['fit_rmse_mw'])
         else:
             data = json.loads(args.input.read_text(encoding='utf-8-sig'))
             instance = RedispatchInstance(**data['instance'])

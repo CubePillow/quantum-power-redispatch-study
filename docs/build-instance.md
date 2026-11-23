@@ -54,11 +54,11 @@ The objective terms, two constraints, and their existing QUBO functions are expl
 
 | File | Role |
 | --- | --- |
-| `examples/instances/small.json` | Original two-time input data and weights |
-| `examples/instances/three_steps.json` | Another example: three times and two lines |
+| `examples/legacy/instances/small.json` | Original two-time input data and weights |
+| `examples/legacy/instances/three_steps.json` | Another example: three times and two lines |
 | `examples/redispatch_instance.py` | Reusable `RedispatchInstance`: input validation, objective evaluation, and constraint checks |
 | `examples/classical_solver.py` | Enumerates feasible schedules and finds weighted global minimal |
-| `examples/small_instance.py` | Loads a JSON file and prints results |
+| `examples/legacy/small_instance.py` | Loads a JSON file and prints results |
 
 `RedispatchInstance.evaluate(states)` returns C/W/O/D. `is_feasible(states)` checks valid state selections and ramping directly. Each state entry selects exactly one level, so the classical search does not need a binary one-hot conversion.
 
@@ -69,7 +69,7 @@ The example still does not call RedispatchModel, RedispatchQUBO, or QAOA.
 From the repository root, provide a JSON input file (required):
 
 ```bash
-python examples/small_instance.py examples/instances/small.json
+python examples/legacy/small_instance.py examples/legacy/instances/small.json
 ```
 
 Copy either JSON file to create your own input. Edit `outputs`, `unit_costs`, `demand`, `sensitivity`, `limits`, and the named `weights` cases. The input table above uses the same field names as the JSON files.
@@ -100,19 +100,19 @@ The first two cases show the main trade-off: spending 40 more removes two overlo
 Pick a line that a few generators can switch between overloaded and not overloaded, take its most influential `gen` units (default 3), monitor every line they can switch, and solve a two-time-step, five-state instance:
 
 ```bash
-python examples/small_instance.py --simbench
+python examples/legacy/small_instance.py --simbench
 ```
 
 Set a seed to repeat the same line choice and costs, and specify weights in C, W, O, D order:
 
 ```bash
-python examples/small_instance.py --simbench --seed 7 --weights 1 0 100 100
+python examples/legacy/small_instance.py --simbench --seed 7 --weights 1 0 100 100
 ```
 
 Optional arguments:
 
 - `--T 2`: number of time points, spaced two hours apart (default: 2).
-- `--output examples/instances/sample.json`: save the input and metadata without overwriting an existing file.
+- `--output examples/legacy/instances/sample.json`: save the input and metadata without overwriting an existing file.
 
 Data loading is implemented in `RedispatchInstance.from_simbench()`. Output includes the selected generators, baseline outputs, demand, and optimal schedule.
 
