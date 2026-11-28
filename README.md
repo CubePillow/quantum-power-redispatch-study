@@ -9,7 +9,7 @@ and compare constraint-aware QAOA variants on them.
 | Task | Goal | Where |
 |---|---|---|
 | 1 · Reproduce | Model (C, W, O, D + one-hot / ramp), small instances, exact optimum | `examples/` (enumeration), `package/.../reduce.py` (instances), `redispatch_stats.py` (evaluation) |
-| 2 · QAOA variants | Baseline (penalties), GM-QAOA, IF-QAOA | QUBO: `package/.../qubo.py`, `examples/qubo_adapter.py` · QAOA: *to do* |
+| 2 · QAOA variants | Baseline (penalties), GM-QAOA, IF-QAOA | QUBO: `package/.../qubo.py`, `examples/qubo_adapter.py` · IF-QAOA: `examples/if_qaoa.py` · baseline/GM-QAOA: *to do* |
 | 3 · Multi-objective | Weights μ, non-dominated samples → Pareto front, Kotil et al. | *to do* (paper's weight search: `package/quantum_energy/moo.py`) |
 | 4 · Benchmark | Quality, feasibility, hypervolume, resources vs. classical / α-expansion | *to do* (α-expansion: `package/quantum_energy/decompose.py`) |
 
@@ -69,6 +69,31 @@ The true optimum of the original problem (exact O) is always printed first: Z en
 | `--num-reads` | `tabu`: independent runs | 20 |
 | `--sub-size` | `aexp`: subproblem size | 6 |
 | `--max-bits` | `exact`: limit for n·k·T (enumerates all 2^(n·k·T) bit strings) | 20 |
+
+### `if_qaoa.py` – IF-QAOA (indicator function) with one-hot ansatz
+
+Cost operator set by hand (it is diagonal): `diag(1(z) * (F(z) - F_ub)) / (F_ub - F_min)`,
+F = μ_C C + μ_W W + μ_O O + λ_D D with exact O, 1(z) = 1 iff all inequality constraints hold
+(ramp; with `--hard-lines` also all line limits). The shift by F_ub (largest feasible F) is needed
+because we minimise: otherwise infeasible states (value 0) would beat every feasible one.
+One-hot ansatz: W state + XY ring mixer per generator/time block, so one-hot holds by construction.
+No penalties, no slack qubits.
+
+```bash
+python if_qaoa.py legacy/instances/small.json --p 3
+python if_qaoa.py legacy/instances/small.json --ansatz x --p 3        # plain X mixer, indicator also checks one-hot
+python if_qaoa.py --simbench --seed 1 --gens 2 --states 3 --T 2 --hard-lines
+```
+
+| Option | Meaning | Default |
+|---|---|---|
+| `--ansatz` | `onehot` (W states + XY ring mixer, k^(nT) amplitudes) · `x` (X mixer, 2^(nkT) amplitudes) | `onehot` |
+| `--hard-lines` | line limits as hard constraint in the indicator (O = 0) instead of a soft term | off |
+| `--p` | max. depth; optimised layer by layer (L-BFGS-B, interpolation warm start) | 3 |
+| `--restarts` | random starts per depth | 5 |
+| `--shots` | samples for "best of shots" | 1000 |
+
+Output per depth: P(feasible), P(optimum), E[F | feasible], approximation ratio, best sampled schedule.
 
 ### `print_data.py` – preview of the data used by the model
 
